@@ -36,6 +36,6 @@ class Webskiff < Formula
 
   test do
     assert_match "webskiff #{version}", shell_output("#{bin}/webskiff --version")
-    assert_match "ALL PASSED", shell_output("#{bin}/webskiff --selftest")
+    assert_match "Usage: webskiff", shell_output("#{bin}/webskiff --help")
   end
 end

@@ -64,6 +64,8 @@ jobs:
       - name: Test installed version and real engine
         run: |
           webskiff --version
+          test_home="$(mktemp -d "$RUNNER_TEMP/webskiff-selftest.XXXXXX")"
+          HOME="$test_home" webskiff --selftest
           brew test engineersamuel/tap/webskiff
       - name: Test real browser controls through the installed wrapper
         run: |
