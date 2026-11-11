@@ -1,0 +1,94 @@
+name: Source install
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      public-tap:
+        description: Test the published remote tap instead of this checkout
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-install-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS ARM64 source install
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+      CARGO_HTTP_USER_AGENT: OpenAI File Downloader, XaiImageApiFetch/1.0
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: http.userAgent
+      GIT_CONFIG_VALUE_0: OpenAI File Downloader, XaiImageApiFetch/1.0
+      PUBLIC_TAP: ${{ inputs.public-tap || false }}
+    steps:
+      - name: Check out tap
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          python-version: "3.13"
+          version: "0.11.21"
+          enable-cache: false
+      - name: Verify clean Mac and configure downloads
+        run: |
+          test "$(uname -m)" = arm64
+          sw_vers
+          if brew list --formula webskiff; then
+            echo 'Webskiff is already installed; this is not a clean install test.' >&2
+            exit 1
+          fi
+          curlrc="$RUNNER_TEMP/webskiff-curlrc"
+          printf 'header = "User-Agent: OpenAI File Downloader, XaiImageApiFetch/1.0"\n' > "$curlrc"
+          echo "HOMEBREW_CURLRC=$curlrc" >> "$GITHUB_ENV"
+      - name: Tap the candidate checkout
+        if: env.PUBLIC_TAP != 'true'
+        run: brew tap engineersamuel/tap "$PWD"
+      - name: Install from source
+        run: brew install --build-from-source engineersamuel/tap/webskiff
+      - name: Check formula style and audit
+        run: |
+          brew style --formula engineersamuel/tap/webskiff
+          brew audit --strict --formula engineersamuel/tap/webskiff
+      - name: Test installed version and real engine
+        run: |
+          webskiff --version
+          brew test engineersamuel/tap/webskiff
+      - name: Test real browser controls through the installed wrapper
+        run: |
+          archive="$(brew --cache engineersamuel/tap/webskiff)"
+          mkdir "$RUNNER_TEMP/webskiff-source"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/webskiff-source" --strip-components=1
+          for mode in --check-only --config-check --enhanced-check; do
+            uv run --no-project python -I "$RUNNER_TEMP/webskiff-source/bench/keyboard.py" \
+              "$(brew --prefix)/bin/webskiff" "$mode"
+          done
+      - name: Test uninstall without removing user files
+        run: |
+          user_home="$RUNNER_TEMP/webskiff-user"
+          mkdir -p "$user_home/.config/webskiff" "$user_home/.cache/zweb/profile"
+          printf 'user configuration\n' > "$user_home/.config/webskiff/config.toml"
+          printf 'user profile\n' > "$user_home/.cache/zweb/profile/keep"
+          HOME="$user_home" brew uninstall engineersamuel/tap/webskiff
+          test "$(cat "$user_home/.config/webskiff/config.toml")" = 'user configuration'
+          test "$(cat "$user_home/.cache/zweb/profile/keep")" = 'user profile'
+          test ! -e "$(brew --prefix)/bin/webskiff"
+      - name: Upload Homebrew logs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: homebrew-failure-logs
+          path: ~/Library/Logs/Homebrew/webskiff
+          if-no-files-found: ignore
+          retention-days: 7
