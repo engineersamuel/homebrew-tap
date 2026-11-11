@@ -10,7 +10,10 @@ class Webskiff < Formula
 
   depends_on arch: :arm64
   depends_on :macos
-  depends_on macos: :ventura
+
+  on_macos do
+    depends_on macos: :ventura
+  end
 
   resource "zebkit" do
     url "https://github.com/ikey4u/zebkit/releases/download/v0.4.0/zebkit-0.4.0-aarch64-apple-darwin.tar.xz"
