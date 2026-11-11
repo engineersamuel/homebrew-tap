@@ -2,6 +2,7 @@ name: Source install
 
 on:
   push:
+    branches: [main, "candidate/**"]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -56,7 +57,12 @@ jobs:
         if: env.PUBLIC_TAP != 'true'
         run: brew tap engineersamuel/tap "$PWD"
       - name: Install from source
-        run: brew install --build-from-source engineersamuel/tap/webskiff
+        run: |
+          if [ "$PUBLIC_TAP" = true ]; then
+            brew install engineersamuel/tap/webskiff
+          else
+            brew install --build-from-source engineersamuel/tap/webskiff
+          fi
       - name: Check formula style and audit
         run: |
           brew style --formula engineersamuel/tap/webskiff
