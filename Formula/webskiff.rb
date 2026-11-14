@@ -5,6 +5,7 @@ class Webskiff < Formula
   version "0.9.0"
   sha256 "4a7a09ff1ef5d5793d9a518e16454af117674c01c4ce20efc71e85d4ab68df35"
   license "MIT"
+  revision 1
 
   depends_on "rust" => :build
 
@@ -28,7 +29,8 @@ class Webskiff < Formula
     ENV["WEBSKIFF_BUILD_COMMIT"] = "e2a90dafee47a7c1a73a5e2537fffaefd678cabc"
     ENV["CARGO_HTTP_USER_AGENT"] = "OpenAI File Downloader, XaiImageApiFetch/1.0"
     system "cargo", "install", *std_cargo_args(root: libexec), "--bin", "webskiff"
-    (libexec/"bin").install "target/release/zebkit"
+    # Cargo's build-script layout can change; install the verified resource directly.
+    (libexec/"bin/zebkit").install "engine/Zebkit.framework"
     bin.write_exec_script libexec/"bin/webskiff"
     (bin/"webskiff").chmod 0755
     pkgshare.install "config.example.toml", "LICENSE", "THIRD_PARTY_NOTICES.md"
