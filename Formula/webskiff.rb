@@ -1,9 +1,9 @@
 class Webskiff < Formula
   desc "Keyboard-first Chromium browser for your terminal"
   homepage "https://github.com/engineersamuel/webskiff"
-  url "https://github.com/engineersamuel/webskiff/archive/6f93bab595716f2c21abe3b5edcf41cb34e68750.tar.gz"
-  version "0.2.0"
-  sha256 "a0c9d66726e3da92489461d5b855e4e2bb3808cf5e25644378d60899ee28da0f"
+  url "https://github.com/engineersamuel/webskiff/archive/c21d69c05f84e464f410e18d4e1089718b055e71.tar.gz"
+  version "0.3.0"
+  sha256 "7a242a6b0d05fbd0968bf6d773856e210c2800949523fc954f5e05cc1a8660ef"
   license "MIT"
 
   depends_on "rust" => :build
@@ -25,7 +25,7 @@ class Webskiff < Formula
       (buildpath/"engine").install Dir["*"]
     end
     ENV["ZEBKIT_DIR"] = (buildpath/"engine").to_s
-    ENV["WEBSKIFF_BUILD_COMMIT"] = "6f93bab595716f2c21abe3b5edcf41cb34e68750"
+    ENV["WEBSKIFF_BUILD_COMMIT"] = "c21d69c05f84e464f410e18d4e1089718b055e71"
     ENV["CARGO_HTTP_USER_AGENT"] = "OpenAI File Downloader, XaiImageApiFetch/1.0"
     system "cargo", "install", *std_cargo_args(root: libexec), "--bin", "webskiff"
     (libexec/"bin").install "target/release/zebkit"
